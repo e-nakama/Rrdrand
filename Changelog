@@ -1,0 +1,14 @@
+0.1-15	Tweak from check as-cran.
+	return `1/(2^32-1)' if zero.
+0.1-14	Tweak from check as-cran.
+0.1-13	More accurate representation(not phyisical random number).
+0.1-10	remove warning() in .onLoad, add packageStartupMessage() in .onAttach.
+0.1-9	save pic register
+0.1-8	Tweak rdrandl opcode line
+0.1-7	Tweak broken english...
+0.1-6	Tweak broken english...
+0.1-5	build time not change kind and no check hasRdRand
+0.1-4	add check RDRAND status
+0.1-3	fix as cran problem
+0.1-2	fix as cran problem
+0.1-1	create
