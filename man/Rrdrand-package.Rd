@@ -1,4 +1,5 @@
 \name{Rrdrand-package}
+\alias{Rrdrand-package}
 \alias{hasRDRAND}
 
 \usage{
@@ -15,23 +16,22 @@ hasRDRAND()
   This library defines the user_unif_rand symbol and gives back a
   random number of RdRand.
 
-  `hasRDRAND' returns either RdRand available by executing the CPUID. 
+  `hasRDRAND' returns whether RdRand is available by executing the CPUID instruction.
 
-  if HasRDRAND return false of library load time, it does not change
+  If hasRDRAND returns FALSE at library load time, it does not change
   the RNGkind.
 
-  if you do changed RNGkind("user") by manual operation
-  and RdRand is not available, you get NaN.
+  If you manually change RNGkind("user") and RdRand is not available, you get NaN.
 
   If you want to detach, it will be set to RNGkind of "default".
 }
 \details{
-  \url{http://prs.ism.ac.jp/~nakama/Rrdrand}
+  \url{https://github.com/e-nakama/Rrdrand}
 }
 \author{
-  Ei-ji Nakama <nakama@com-one.com> and Junji NAKANO <nakanoj@ism.ac.jp>
+  Ei-ji Nakama <nakama@ki.rim.or.jp> and Junji NAKANO <nakanoj@ism.ac.jp>
  
-  Maintainer: Ei-ji Nakama <nakama@com-one.com>
+  Maintainer: Ei-ji Nakama <nakama@ki.rim.or.jp>
 }
 \keyword{utilities}
 \examples{

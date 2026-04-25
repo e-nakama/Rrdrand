@@ -1,3 +1,4 @@
+0.2-1	omit 32bit and Tweak.
 0.1-15	Tweak from check as-cran.
 	return `1/(2^32-1)' if zero.
 0.1-14	Tweak from check as-cran.

@@ -1,13 +1,12 @@
 Package: Rrdrand
-Version: 0.1-16
-Date: 2018-07-04
+Version: 0.2-1
+Date: 2026-04-24
 Title: 'DRNG' on Intel CPUs with the 'RdRand' Instruction for R
-Author: Ei-ji Nakama <nakama@ki.rim.or.jp>, Junji NAKANO <nakanoj@ism.ac.jp>
-Maintainer: Ei-ji Nakama <nakama@ki.rim.or.jp>
-Depends: R (>= 3.0.0)
+Authors@R: c(person(given = "Ei-ji", family = "Nakama", role = c("aut", "cre"), email = "nakama@ki.rim.or.jp"), person(given = "Junji", family = "NAKANO", role = "aut", email = "nakanoj@ism.ac.jp"))
+Depends: R (>= 4.0.0)
 Description: Make use of the hardware random number accessed by the 'RdRand'
- instruction in recent Intel CPUs (Ivy Bridge and later).
- 'DRNG' is "Digital Random Number Generator".
+    instruction in recent Intel CPUs (Ivy Bridge and later).
+    'DRNG' is "Digital Random Number Generator".
 License: AGPL-3
-SystemRequirements: need the RDRAND instruction on Intel CPU. and C compiler must be able to compile a GNU-style in-line assembler.
-URL: http://prs.ism.ac.jp/~nakama/Rrdrand/
+SystemRequirements: need the RDRAND instruction on Intel CPU, and C compiler must be able to compile a GNU-style in-line assembler.
+URL: https://github.com/e-nakama/Rrdrand

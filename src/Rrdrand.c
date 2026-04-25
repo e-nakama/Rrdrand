@@ -1,8 +1,8 @@
 /*
  * 
  * Rrdrand : digital random number if R on Intel CPU ivy bridge or later
- * Author: Ei-ji Nakama <nakama@com-one.com>, Junji NAKANO <nakanoj@ism.ac.jp>
- * Copyright(C) 2014-2018
+ * Author: Ei-ji Nakama <nakama@ki.rim.or.jp>, Junji NAKANO <nakanoj@ism.ac.jp>
+ * Copyright(C) 2014-2026
  */
 
 #include <R.h>
@@ -22,107 +22,125 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define POOLSIZE 4096
-static int poolsize=POOLSIZE;
-static int poolpoint=0;
-static int poolavail=0;
-static unsigned int poolbuf[POOLSIZE];
+#define POOLSIZE 4096                   // Size of the pool of random numbers. Adjust as needed.
+static int poolsize=POOLSIZE;           // Size of the pool of random numbers. Adjust as needed.
+static int poolpoint=0;                 // Current index in the pool
+static int poolavail=0;                 // Number of available random numbers in the pool
+static unsigned int poolbuf[POOLSIZE];  // Buffer to hold the pool of random numbers
 
-static const double onedev2pow32     =  2.3283064365386963e-10; /* 1/2^32 */
-static const double onedev2pow32sub1 =  2.328306437080797e-10; /* 1/(2^32 - 1) */ 
+static const double oneDiv2Pow32     =  2.3283064365386963e-10; /* 1/2^32 */
+static const double oneDiv2Pow32Sub1 =  2.328306437080797e-10; /* 1/(2^32 - 1) */ 
 
+/// @brief Executes the CPUID instruction with the given operation code and retrieves the values of the EAX, EBX, ECX, and EDX registers
+/// @param op The operation code to pass to the CPUID instruction
+/// @param eax Pointer to store the value of the EAX register
+/// @param ebx Pointer to store the value of the EBX register
+/// @param ecx Pointer to store the value of the ECX register
+/// @param edx Pointer to store the value of the EDX register
 __inline static void mycpuid(int op, int *eax, int *ebx, int *ecx, int *edx){
 #if defined(HAVE_X86_CPUID) && HAVE_X86_CPUID == 1
-#if defined(__i386__) && defined(__PIC__)
-        __asm__ __volatile__("xchgl %%ebx, %k1;" /* save pic register */
-                             "cpuid;"
-                             "xchgl %%ebx, %k1;"
-                             : "=a"  (*eax),
-                               "=&r" (*ebx),
-                               "=c"  (*ecx),
-                               "=d"  (*edx) : "0" (op));
-#elif defined(__x86_64__) && defined(__PIC__)
-        __asm__ __volatile__("xchgq %%rbx, %q1;" /* save pic register */
-                             "cpuid;"
-                             "xchgq %%rbx, %q1;"
-                             : "=a"  (*eax),
-                               "=&r" (*ebx),
-                               "=c"  (*ecx),
-                               "=d"  (*edx) : "0" (op));
+#if defined(__x86_64__) && defined(__PIC__)
+		__asm__ __volatile__("xchgq %%rbx, %q1;" /* save pic register */
+							 "cpuid;"
+							 "xchgq %%rbx, %q1;"
+							 : "=a"  (*eax),
+							   "=&r" (*ebx),
+							   "=c"  (*ecx),
+							   "=d"  (*edx) : "0" (op));
 #else
-        __asm__ __volatile__("cpuid"
-                             : "=a" (*eax),
-                               "=b" (*ebx),
-                               "=c" (*ecx),
-                               "=d" (*edx) : "0" (op));
+		__asm__ __volatile__("cpuid"
+							 : "=a" (*eax),
+							   "=b" (*ebx),
+							   "=c" (*ecx),
+							   "=d" (*edx) : "0" (op));
 #endif
 #endif
 }
 
-__inline static int has_rdrand(void)
+/// @brief Checks if the CPU supports the RDRAND instruction
+/// @return A logical value indicating whether RDRAND is supported
+__inline static int hasRDRAND(void)
 {
-   static int have_rdrand = -1;
+	static int have_rdrand = -1;						// Cache the result of the RDRAND support check. -1 indicates that the check has not been performed yet.
 #if defined(HAVE_X86_CPUID) && HAVE_X86_CPUID == 1
-   int eax, ebx, ecx, edx;
-   if (have_rdrand!=-1) return(have_rdrand);
-   mycpuid(1,&eax, &ebx, &ecx, &edx);
-   if((ecx & ( 1 << 30)) != 0) have_rdrand = 1;
-   else  have_rdrand = 0;
+	int eax = 0, ebx = 0, ecx = 0, edx = 0;				// Variables to hold the values of the EAX, EBX, ECX, and EDX registers after executing the CPUID instruction
+	if (have_rdrand!=-1) return(have_rdrand);			// Return the cached result if the check has already been performed
+	mycpuid(1,&eax, &ebx, &ecx, &edx);					// Execute the CPUID instruction with operation code 1 to retrieve the feature information of the CPU
+	if((ecx & ( 1 << 30)) != 0) have_rdrand = 1;		// Check if the 30th bit of the ECX register is set, which indicates support for the RDRAND instruction. If it is set, set have_rdrand to 1.
+	else  have_rdrand = 0;								// If the 30th bit of the ECX register is not set, set have_rdrand to 0, indicating that RDRAND is not supported.
 #else
-   have_rdrand = 0;
+   have_rdrand = 0;										// If the CPUID instruction is not available, assume that RDRAND is not supported and set have_rdrand to 0.
 #endif
    return(have_rdrand);
 }
 
-SEXP Rrdrand_has_rdrand(void)
+/// @brief Checks if the CPU supports the RDRAND instruction
+/// @return A logical value indicating whether RDRAND is supported
+SEXP Rrdrand_hasRDRAND(void)
 {
-  SEXP has;
-  PROTECT(has = allocVector(LGLSXP, 1));
-  LOGICAL(has)[0]=has_rdrand();
-  UNPROTECT(1);
-  return(has);
+	SEXP	has;										// Variable to hold the result of the RDRAND support check as an R object
+	PROTECT(has = allocVector(LGLSXP, 1));				// Allocate a logical vector of length 1 to store the result
+	LOGICAL(has)[0]=hasRDRAND();						// Call the hasRDRAND function to check if RDRAND is supported and store the result in the logical vector
+	UNPROTECT(1);										// Unprotect the allocated logical vector
+	return(has);										// Return the logical vector indicating whether RDRAND is supported
 }
 
+/// @brief Reads a random number from the RDRAND instruction
+/// @return An unsigned integer generated by RDRAND, or 0 if RDRAND is not supported or if retries are exhausted
 __inline static unsigned int rdrand(void)
 {
-    unsigned int v;
-    unsigned char r;
-    /* rdrandl */
-    if(has_rdrand()!=1) return (0);
+	unsigned int	value;								// Value read from RdRand
+	unsigned char	carry_flag;							// Carry flag: 1 if RdRand succeeded, 0 if it failed
+	int 			retries = 0;						//  Number of retries
+	const int max_retries = 100;						// Prevent infinite loop
+
+	/* rdrand */
+	if(hasRDRAND()!=1) return (0);
 #if defined(HAVE_X86_CPUID) && HAVE_X86_CPUID == 1
-    do{
-      r=0;
-      __asm__ __volatile__ ( ".byte 0x0f,0xc7,0xf0;"
-                             "setc %0;"
-                             : "=qm" (r), "=a" (v));
-    }while(r==0);
+	do{
+	  carry_flag=0;
+	  __asm__ __volatile__ ("rdrand %0; setc %1;"
+					 : "=a" (value), "=qm" (carry_flag));
+	  retries++;
+	  if (retries >= max_retries) {
+		/* Fallback to 0 if retries exhausted */
+		value = 0;
+		break;
+	  }
+	}while(carry_flag==0);
 #else
-    v=0;
+	value=0;
 #endif
-    return(v);
+	return(value);
 }
 
 
-static double rn=0.0;
+
+/// @brief Generates a random number between 0 and 1 using the RDRAND instruction
+/// @return Pointer to the generated random number
 double *user_unif_rand ()
 {
-    int i;
+	static double rn = 0.0;	// Variable to hold the generated random number
 
-    if(has_rdrand()!=1){
-      rn=R_NaN;
-      return(&rn);
-    }
-    if(poolavail == 0 ){
-      for ( i=0; i<POOLSIZE ; i++ ){
-	poolbuf[i]=rdrand();
-      }
-      poolavail=poolsize;poolpoint=0;
-    }
-                                     /* 1.0/2^32  [0,1)*/
-    rn=(poolbuf[poolpoint]==0)?onedev2pow32sub1:(double)poolbuf[poolpoint]  *  onedev2pow32;
-    poolavail--;
-    poolpoint++;
+	// Check if RDRAND is supported. If not, return NaN.
+	if(hasRDRAND()!=1){
+	  rn=R_NaN;
+	  return(&rn);
+	}
 
-    return &rn;
+	// If the pool is empty, refill it with new random numbers from RDRAND
+	if(poolavail == 0 ){
+	for ( int i=0; i<POOLSIZE ; i++ ){
+		  poolbuf[i]=rdrand();
+	  }
+	  poolavail=poolsize;poolpoint=0;
+	}
+
+	// 1.0/2^32  [0,1)
+	rn=(poolbuf[poolpoint]==0)?oneDiv2Pow32Sub1:(double)poolbuf[poolpoint]  *  oneDiv2Pow32;
+	poolavail--;
+	poolpoint++;
+
+	return &rn;
 }
 

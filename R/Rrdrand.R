@@ -1,4 +1,7 @@
-hasRDRAND<-function()
+#' Check for RDRAND support
+#' @return A logical value indicating whether RDRAND is supported on the current system
+#' @export
+hasRDRAND <- function()
 {
-   .Call("Rrdrand_has_rdrand", PACKAGE="Rrdrand")
+   .Call("Rrdrand_hasRDRAND", PACKAGE="Rrdrand")
 }
